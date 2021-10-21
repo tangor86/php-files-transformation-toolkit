@@ -19,7 +19,7 @@
 	function getTargetPath($fName) {
 		//return $transformationObj['targetDir'] . SEP . $fName;
 		return transformer::$rules['targetDir'] . SEP . $fName;
-	}rtrtsrtrstrts
+	}
 
 	/**
 	 * Command to copy a file!
