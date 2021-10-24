@@ -10,15 +10,27 @@
 		private $sourceDir 				= '';						// to read files from (like index.html)
 		private $targetDir 				= '';						// to write files to (wp themes dir!)
 
-		function readSourceFile($item) {
-			$content = file_get_contents($this->sourceDir . SEP . $item['fileName']);
+		function readSourceFile($item, $fileType = 'fileName') {
+
+			if ($fileType == 'contentToFileName') {
+				$fName = $this->targetDir . SEP . $item[$fileType];
+			} else {
+				$fName = $this->sourceDir . SEP . $item[$fileType];
+			}
+			
+			if (DEB) echo "readSourceFile: " . $fName . ", type: " . $fileType . "\n";
+
+			$content = file_get_contents($fName);
 			return $content;
 		}
 
 		function writeToFile($item, $content) {
-			if (DEB) echo "Writing to file: " . $item['fileName'] . ", " .strlen($content) . " bytes." . "\n";
+			
+			$fName = (isset($item['contentToFileName']) ?  $item['contentToFileName'] : $item['fileName']);
 
-			$myfile = fopen($this->targetDir . SEP . "t-". $item['fileName'], "w") or die("Unable to open file!");
+			if (DEB) echo "writeToFile: " . $fName . ", " .strlen($content) . " bytes." . "\n";
+
+			$myfile = fopen($this->targetDir . SEP . "t-". $fName, "w") or die("Unable to open file!");
 			fwrite($myfile, $content);
 			fclose($myfile);
 
@@ -45,29 +57,45 @@
 			}
 
 			$content = '';
+			$contentFromFileName = '';
+			$contentToFileName = '';
 
 			foreach ($rulesJson['actions'] as $i => $item) {
 
 				if (DEB) echo "i: " . $i . "\n";
 
 				if (empty($content)) {
-					$content = $this->readSourceFile($item);
+					if (isset($item['fileName']))
+						$content = $this->readSourceFile($item);
 				}
 
 				$clName = 'action' . $item['action'];
-				$clObj = new $clName($item, $content);
+				$clObj = new $clName($item);
+
+				if (isset($item['contentFromFileName'])) {
+					$contentFromFileName = $this->readSourceFile($item, 'contentFromFileName');
+					call_user_func(array($clObj, 'setContentFromFileName'), $contentFromFileName);
+	        	}
+
+				if (isset($item['contentToFileName'])) {
+					$contentToFileName = $this->readSourceFile($item, 'contentToFileName');
+					call_user_func(array($clObj, 'setContentToFileName'), $contentToFileName);
+	        	}
+
 				$content = call_user_func(array($clObj, 'perform'), $item, $content);
 				$writeToFile = call_user_func(array($clObj, 'getWriteToFile'));
 
-				if (DEB) echo "writeToFile = " . ($writeToFile?'yes':'no') . "\n";
+				
 				
 				//to call destruct method!
 				unset($clObj);
 
-				if (
-					$writeToFile || 
-					($i == count($rulesJson['actions'])-1)
-				) {
+				$condWriteToFile =	$writeToFile || 
+									($i == count($rulesJson['actions'])-1);
+
+				if (DEB) echo "WriteToFile = " . ($condWriteToFile?'yes':'no') . "\n";
+
+				if ($condWriteToFile) {
 					$this->writeToFile($item, $content);
 					$content = '';
 				}
@@ -86,13 +114,23 @@
 	class action {
 
 		protected $writeToFile = false;
+		protected $contentFromFileName = '';	// from what file I take content
+		protected $contentToFileName = '';		// from what file I will replace with new content
 
-	    function __construct() {
+	    function __construct($item) {
 	        if (DEB) print "Executing " . get_class($this) . "\n";
 	    }
 
 	    function __destruct() {
 			if (DEB) print "Destroying " . get_class($this) . "\n";
+	    }
+
+	    function setContentFromFileName($content) {
+	    	$this->contentFromFileName = $content;
+	    }
+
+		function setContentToFileName($content) {
+	    	$this->contentToFileName = $content;
 	    }
 
 	    function getWriteToFile() {
@@ -119,20 +157,58 @@
 
 	class actionHTMLReplace extends action {
 
+		//https://stackoverflow.com/questions/4898192/preg-replace-how-to-replace-only-matching-xxx1yyy-pattern-inside-the-selector
 		//https://regex101.com/r/XIrVlW/1
-		private $rPattern = "/<!-- \[t:header\] -->([\s\S]+?)<!-- \[\/t:header\] -->/m";
+		//https://regex101.com/r/PYJSjT/1
+		//https://regex101.com/r/HYQmbV/1
+		private $tplPattern = "/(?<=<!-- \[t:header\] -->\s)([\s\S]+?)(?=\s*<!-- \[\/t:header\] -->)/m";
 
 		function perform($item, $content) {
 
-			$matches = [];
-			preg_match_all($this->rPattern, $content, $matches);
+			// important!
+			$contentFromFileName = $this->contentFromFileName;
+			$contentToFileName = $this->contentToFileName;
 
-			if (DEB) {
-				echo "Content length: " . strlen($content) . "\n";
-				print_r($matches);
+			foreach ($item['tags'] as $tag) {
+
+				$matches = [];
+				$curPattern = str_replace('header', $tag, $this->tplPattern);
+
+				if (DEB) {
+					echo "curPattern = " . $curPattern . "\n";
+				}
+
+				preg_match_all($curPattern, $contentFromFileName, $matches);
+
+				if (DEB) {
+					echo "contentFromFileName: " . strlen($contentFromFileName) . " bytes." . "\n";
+					echo "contentToFileName: " . strlen($contentToFileName) . " bytes." . "\n";
+					print_r($matches);
+				}
+
+				$c = 0;
+
+				if (!empty($matches[1][0])) {
+
+					$toInsert = $matches[1][0];
+					
+					// replacing first new line character with nothing to have a prettier output look!
+					$needle = "\n";
+					$pos = strpos($toInsert, $needle);
+
+					if ($pos !== false) {
+						$toInsert = substr_replace($toInsert, '', $pos, strlen($needle));
+					}
+					// end of replacing new line character!
+
+					
+					$contentToFileName = preg_replace($curPattern, $toInsert, $contentToFileName, 1, $c);
+				}
+
+				if (DEB) echo "Matches count = " . $c . "\n";
 			}
 
-			return $content;
+			return $contentToFileName;
 		}
 	}
 

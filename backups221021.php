@@ -1,5 +1,8 @@
 <?php
 
+//$toInsert = trim($matches[1][0]);
+//$toInsert = str_replace(array("\n", "\r"), '', $toInsert, 1);
+
 foreach (transformer::$rules['items'] as $v) {
 
 	$ret = false;
@@ -17,3 +20,4 @@ foreach (transformer::$rules['items'] as $v) {
 
 	echo " -> " . ($ret?'done':'failed!') . "\n";
 }
+
