@@ -9,5 +9,5 @@
 	//Example: "php C:\Users\EUGENY\vvv-local\www\php-files-transformation-toolkit\transform.php c:\Users\EUGENY\vvv-local\www\sample-theme\public_html"
 	$mainClass = new transformationOrchestrator();
 	$mainClass->run($argv);
-	
+
 ?>

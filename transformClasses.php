@@ -82,8 +82,6 @@
 				$content = call_user_func(array($clObj, 'perform'), $item, $content);
 				$writeToFile = call_user_func(array($clObj, 'getWriteToFile'));
 
-				
-				
 				//to call destruct method!
 				unset($clObj);
 
@@ -188,7 +186,7 @@
 				if (!empty($matches[1][0])) {
 
 					$toInsert = $matches[1][0];
-					
+
 					// replacing first new line character with nothing to have a prettier output look!
 					$needle = "\n";
 					$pos = strpos($toInsert, $needle);
@@ -197,7 +195,6 @@
 						$toInsert = substr_replace($toInsert, '', $pos, strlen($needle));
 					}
 					// end of replacing new line character!
-
 
 					$contentToFileName = preg_replace($curPattern, $toInsert, $contentToFileName, 1, $c);
 				}
