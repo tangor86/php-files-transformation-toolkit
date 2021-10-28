@@ -1,0 +1,26 @@
+<?php
+
+	class outputStats {
+
+		private $stats = [];
+		private $t1 = 0;
+		private $t2 = 0;
+
+		public $header;
+
+		public function setValue() {
+
+		}
+
+		public function setTs() {
+
+		}
+
+		public function outputStats() {
+
+			print_r($this->stats);
+
+		}
+	}
+
+?>
