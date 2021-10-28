@@ -45,6 +45,7 @@
 	class actionCopyFile extends action {
 
 		function perform($item, $content, transformationOrchestrator $mainClass) {
+
 			//since all files actions are done in orchestrator, this class is more like stub!
 			$this->writeToFile = true;
 
@@ -58,11 +59,20 @@
 
 		function perform($item, $content, transformationOrchestrator $mainClass) {
 
-			copy(
-				$mainClass->getStubsDir() . $item['fileName'], 
-				$mainClass->getTargetDir() . $item['fileName']
-			);
-
+			if (gettype($item['fileName']) == 'array') {
+				foreach ($item['fileName'] as $fName) {
+					copy(
+						$mainClass->getDir('stubs') . $fName, 
+						$mainClass->getDir('target') . $fName
+					);
+				}
+			} else {
+				copy(
+					$mainClass->getDir('stubs') . $item['fileName'], 
+					$mainClass->getDir('target') . $item['fileName']
+				);
+			}
+			
 			return $content;
 		}
 	}
@@ -73,8 +83,8 @@
 		function perform($item, $content, transformationOrchestrator $mainClass) {
 
 			copy(
-				$mainClass->getSourceDir() . $item['fileName'], 
-				$mainClass->getTargetDir() . $item['fileName']
+				$mainClass->getDir('source') . $item['fileName'], 
+				$mainClass->getDir('target') . $item['fileName']
 			);
 
 			return $content;

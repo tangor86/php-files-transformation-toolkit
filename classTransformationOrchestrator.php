@@ -3,34 +3,44 @@
 	//Main class
 	class transformationOrchestrator {
 
-		private $jsonSettingsFileName	= 'php-transform.json';		// you can change it!
-		private $sourceDir 				= '';						// to read files from (like index.html)
-		private $targetDir 				= '';						// to write files to (wp themes dir!)
-		private $stubsDir 				= '';						// directory with stub files (template files)
+		private $jsonSettingsFileName = 'php-transform.json';		// you can change it!
 
-		function getSourceDir() {
-			return $this->sourceDir;
+		private $dirs = [
+			// source 				- to read files from (like index.html)
+			// target 				- to write files to (wp themes dir!)
+			// stubs 				- directory with stub files (template files)
+		];
+
+		function getDir($dirType) {
+			return $this->dirs[$dirType];
 		}
 
-		function getTargetDir() {
-			return $this->targetDir;
+		function setDir($dirType, $val) {
+			$this->dirs[$dirType] = $val;
 		}
 
-		function getStubsDir() {
-			return $this->stubsDir;
+		function getSettings() {
+			$content = file_get_contents($this->getDir('source') . $this->jsonSettingsFileName);
+			$rulesJson = json_decode($content, true);
+			return $rulesJson;
 		}
 
 		function readSourceFile($item, $fileType = 'fileName') {
 
-			//TODO: dir array!
-			if ($fileType == 'contentToFileName') {
-				$fName = $this->targetDir . SEP . $item[$fileType];
-			} else if ($fileType == 'stubFileName') {
-				$fName = $this->stubsDir . SEP . $item[$fileType];
-			} else {
-				$fName = $this->sourceDir . SEP . $item[$fileType];
+			switch ($fileType) {
+				case 'contentToFileName':
+					$fDir = $this->getDir('target');
+					break;
+				case 'stubFileName':
+					$fDir = $this->getDir('stubs');
+					break;
+				default:
+					$fDir = $this->getDir('source');
+					break;
 			}
-			
+
+			$fName = $fDir . SEP . $item[$fileType];
+
 			if (DEB) echo "readSourceFile: " . $fName . ", type: " . $fileType . "\n";
 
 			$content = file_get_contents($fName);
@@ -42,10 +52,11 @@
 
 			$pref = '';
 			$fName = (isset($item['contentToFileName']) ?  $item['contentToFileName'] : $item['fileName']);
+			$fNameFull = $this->getDir('target') . SEP . $pref . $fName;
 
-			if (DEB) echo "writeToFile: " . $fName . ", " .strlen($content) . " bytes." . "\n";
+			if (DEB) echo "writeToFile: " . $fNameFull . ", " . strlen($content) . " bytes." . "\n";
 
-			$myfile = fopen($this->targetDir . SEP . $pref . $fName, "w") or die("Unable to open file!");
+			$myfile = fopen($fNameFull, "w") or die("Unable to open file!");
 			fwrite($myfile, $content);
 			fclose($myfile);
 
@@ -56,14 +67,12 @@
 		function run($argv) {
 
 			//var_dump($argv);
-			//transformationOrchestrator::$rules['workingDir'] = $argv[1];
 
-			$string = file_get_contents($argv[1] . SEP . $this->jsonSettingsFileName);
-			$rulesJson = json_decode($string, true);
+			$rulesJson = $this->getSettings();
 
-			$this->sourceDir = $argv[1] . '\\';
-			$this->targetDir = $rulesJson['targetDir'];
-			$this->stubsDir = $rulesJson['stubsDir'];
+			$this->setDir('source', $argv[1] . SEP);
+			$this->setDir('target', $rulesJson['targetDir']);
+			$this->setDir('stubs', $rulesJson['stubsDir']);
 
 			echo "Running transform.php at " . date("h:i:sa") . " for " . count($rulesJson['actions']) . " items!\n";
 
@@ -72,6 +81,7 @@
 				print_r($rulesJson);
 			}
 
+			$stats = [];
 			$content = '';
 			$contentFromFileName = '';
 			$contentFromStub = '';
