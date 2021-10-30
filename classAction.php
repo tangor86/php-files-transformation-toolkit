@@ -10,8 +10,40 @@
 		protected $contentToFileName = '';		// content will go to this file!
 		protected $contentFromStub = '';		// to this content I will insert content of contentFromFileName
 
-	    function __construct($item) {
+	    function __construct($item, $isFirst, transformationOrchestrator $mainClass ) {
+
 	        if (DEB) print "Executing " . get_class($this) . "\n";
+
+	        /*
+	        if (empty($content) && $action != 'HardCopyFileFromStubs') {
+				if (isset($item['fileName']))
+					$content = $this->readSourceFile($item);
+			}
+			*/
+
+			/*
+			if (isset($item['contentFromFileName'])) {
+				call_user_func(
+					array($clObj, 'setContentFromFileName'),
+					$this->readSourceFile($item, 'contentFromFileName')
+				);
+        	}
+
+			if (isset($item['stubFileName'])) {
+				call_user_func(
+					array($clObj, 'setContentFromStub'), $contentFromStub,
+					$this->readSourceFile($item, 'stubFileName')
+				);
+        	}
+			*/
+
+			if (isset($item['contentFromFileName'])) {
+				$this->setContentFromFileName($mainClass->readSourceFile($item, 'contentFromFileName'));
+			}
+
+			if (isset($item['stubFileName'])) {
+				$this->setContentFromStub($mainClass->readSourceFile($item, 'stubFileName'));
+			}
 	    }
 
 	    function __destruct() {
@@ -90,6 +122,74 @@
 			return $content;
 		}
 	}
+
+	//action: CopyFolder
+	class actionCopyFolder extends action {
+
+		//https://stackoverflow.com/questions/2050859/copy-entire-contents-of-a-directory-to-another-using-php/2050965
+
+		function perform($item, $content, transformationOrchestrator $mainClass) {
+
+			$this->recurseCopy(
+				$mainClass->getDir($item['dirType']) . $item['folderName'],
+				$mainClass->getDir('target') . $item['folderName']
+			);
+
+			return $content;
+		}
+
+		function recurseCopy(
+		    string $sourceDirectory,
+		    string $destinationDirectory,
+		    string $childFolder = ''
+		): void {
+
+		    $directory = opendir($sourceDirectory);
+
+		    if (is_dir($destinationDirectory) === false) {
+		        mkdir($destinationDirectory);
+		    }
+
+		    if ($childFolder !== '') {
+		        if (is_dir("$destinationDirectory/$childFolder") === false) {
+		            mkdir("$destinationDirectory/$childFolder");
+		        }
+
+		        while (($file = readdir($directory)) !== false) {
+		            if ($file === '.' || $file === '..') {
+		                continue;
+		            }
+
+		            if (is_dir("$sourceDirectory/$file") === true) {
+		                $this->recurseCopy("$sourceDirectory/$file", "$destinationDirectory/$childFolder/$file");
+		            } else {
+		                copy("$sourceDirectory/$file", "$destinationDirectory/$childFolder/$file");
+		            }
+		        }
+
+		        closedir($directory);
+
+		        return;
+		    }
+
+		    while (($file = readdir($directory)) !== false) {
+		        if ($file === '.' || $file === '..') {
+		            continue;
+		        }
+
+		        if (is_dir("$sourceDirectory/$file") === true) {
+		            $this->recurseCopy("$sourceDirectory/$file", "$destinationDirectory/$file");
+		        }
+		        else {
+		            copy("$sourceDirectory/$file", "$destinationDirectory/$file");
+		        }
+		    }
+
+		    closedir($directory);
+		}
+	}
+
+
 
 	class actionHTMLReplace extends action {
 

@@ -67,10 +67,11 @@
 		function run($argv) {
 
 			//var_dump($argv);
-
-			$rulesJson = $this->getSettings();
+			$stats = new outputStats();
 
 			$this->setDir('source', $argv[1] . SEP);
+			$rulesJson = $this->getSettings();
+
 			$this->setDir('target', $rulesJson['targetDir']);
 			$this->setDir('stubs', $rulesJson['stubsDir']);
 
@@ -81,52 +82,64 @@
 				print_r($rulesJson);
 			}
 
-			$stats = [];
 			$content = '';
 			$contentFromFileName = '';
 			$contentFromStub = '';
 
-			foreach ($rulesJson['actions'] as $i => $item) {
+			$stats->header = [
+				'task',
+				'time',
+				'files',
+				'processors'
+			];
+			//'error'
 
-				$action = $item['action'];
-				if (DEB) echo "i: " . $i . " (".$action.")" . "\n";
+			$i = 0;
 
-				if (empty($content) && $action != 'HardCopyFileFromStubs') {
-					if (isset($item['fileName']))
-						$content = $this->readSourceFile($item);
+			foreach ($rulesJson['tasks'] as $task => $item) {
+
+				$processors = $item['processors'];
+				if (DEB) echo "i: " . $i . " (".$task.")" . "\n";
+
+				$stats->setValue($i, "task", $task);
+				$stats->setValue($i, "files", $item['fileName']);
+				$stats->setValue($i, "processors", count($processors));
+
+				$ii = 0;
+				foreach ($processors as $proc => $procItem) {
+
+					$clName = "action{$proc}";
+					$clObj = new $clName($item, !$ii, $this);
+
+					$content = call_user_func(array($clObj, 'perform'), $item, $content, $this);
+					$writeToFile = call_user_func(array($clObj, 'getWriteToFile'));
+
+					$stats->setTs($i);
+
+					//to call destruct method!
+					unset($clObj);
+
+					$ii++;
 				}
 
-				$clName = 'action' . $action;
-				$clObj = new $clName($item);
-
-				if (isset($item['contentFromFileName'])) {
-					$contentFromFileName = $this->readSourceFile($item, 'contentFromFileName');
-					call_user_func(array($clObj, 'setContentFromFileName'), $contentFromFileName);
-	        	}
-
-				if (isset($item['stubFileName'])) {
-					$contentFromStub = $this->readSourceFile($item, 'stubFileName');
-					call_user_func(array($clObj, 'setContentFromStub'), $contentFromStub);
-	        	}
-
-				$content = call_user_func(array($clObj, 'perform'), $item, $content, $this);
-				$writeToFile = call_user_func(array($clObj, 'getWriteToFile'));
-
-				//to call destruct method!
-				unset($clObj);
-
-				$condWriteToFile =	$writeToFile || 
-									($i == count($rulesJson['actions'])-1);
-
+				$this->writeToFile($item, $content);
+				$content = '';
+				
+				/*
+				$condWriteToFile =	$writeToFile || ($i == count($rulesJson['actions'])-1);
 				if (DEB) echo "WriteToFile = " . ($condWriteToFile?'yes':'no') . "\n";
-
-				if ($condWriteToFile) {
+				if ($writeToFile) {
 					$this->writeToFile($item, $content);
 					$content = '';
 				}
+				*/
 
-				//call_user_func(array('action'.$v['action'], 'perform'), $v);
+				$i++;
+
+				//$stats->setValue($i, "error", substr($e->getMessage(), 0, 25));
 			}
+			
+			unset($stats);
 		}
 	}
 
