@@ -75,7 +75,7 @@
 			$this->setDir('target', $rulesJson['targetDir']);
 			$this->setDir('stubs', $rulesJson['stubsDir']);
 
-			echo "Running transform.php at " . date("h:i:sa") . " for " . count($rulesJson['actions']) . " items!\n";
+			echo "Running transform.php at " . date("h:i:sa") . " for " . count($rulesJson['tasks']) . " items!\n";
 
 			if (DEB == 3) {
 				echo "Passed rules:\n";
@@ -102,16 +102,16 @@
 				if (DEB) echo "i: " . $i . " (".$task.")" . "\n";
 
 				$stats->setValue($i, "task", $task);
-				$stats->setValue($i, "files", $item['fileName']);
+				$stats->setValue($i, "files", (isset($item['fileName'])?$item['fileName']:$item['folderName']));
 				$stats->setValue($i, "processors", count($processors));
 
 				$ii = 0;
 				foreach ($processors as $proc => $procItem) {
 
-					$clName = "action{$proc}";
+					$clName = "action{$procItem["name"]}";
 					$clObj = new $clName($item, !$ii, $this);
 
-					$content = call_user_func(array($clObj, 'perform'), $item, $content, $this);
+					$content = call_user_func(array($clObj, 'perform'), array_merge($item, $procItem), $content, $this);
 					$writeToFile = call_user_func(array($clObj, 'getWriteToFile'));
 
 					$stats->setTs($i);
@@ -124,7 +124,7 @@
 
 				$this->writeToFile($item, $content);
 				$content = '';
-				
+
 				/*
 				$condWriteToFile =	$writeToFile || ($i == count($rulesJson['actions'])-1);
 				if (DEB) echo "WriteToFile = " . ($condWriteToFile?'yes':'no') . "\n";

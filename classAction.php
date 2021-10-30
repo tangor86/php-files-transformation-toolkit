@@ -130,11 +130,19 @@
 
 		function perform($item, $content, transformationOrchestrator $mainClass) {
 
-			$this->recurseCopy(
-				$mainClass->getDir($item['dirType']) . $item['folderName'],
-				$mainClass->getDir('target') . $item['folderName']
-			);
+			if (gettype($item['folderName']) == 'string') {
+				$arr = [$item['folderName']];
+			} else {
+				$arr = $item['folderName'];
+			}
 
+			foreach ($arr as $key => $folderName) {
+				$this->recurseCopy(
+					$mainClass->getDir($item['dirType']) . $folderName,
+					$mainClass->getDir('target') . $folderName
+				);
+			}
+			
 			return $content;
 		}
 

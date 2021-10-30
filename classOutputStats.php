@@ -26,7 +26,7 @@
 
 			for ($i=1; $i<=(count($this->header)*$this->rpad);$i++) {echo "-";}
 			echo "\n";
-			for ($i=0; $i<(count($this->header));$i++) {echo str_pad($this->header[$i], $this->rpad);}
+			for ($i=0; $i<(count($this->header));$i++) {echo ucfirst(str_pad($this->header[$i], $this->rpad));}
 			echo "\n";
 			for ($i=1; $i<=(count($this->header)*$this->rpad);$i++) {echo "-";}
 			echo "\n";
@@ -46,10 +46,15 @@
 
 			for ($i=1; $i<=(count($this->header)*$this->rpad);$i++) {echo "-";}
 			echo "\n";
-			echo 'Total execution time: ' . number_format($this->tEnd - $this->tStart, 3);
+			echo 'Total execution time: ' . number_format($this->tEnd - $this->tStart, 3) . "\n";
 		}
 
 		public function setValue($i, $k, $val) {
+
+			if (gettype($val) == 'array') {
+				$val = implode(', ', $val);
+			}
+
 			$this->t1 =	microtime(true);
 			$this->stats[$i][$k] = $val;
 		}
