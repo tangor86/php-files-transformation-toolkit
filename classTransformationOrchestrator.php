@@ -5,7 +5,7 @@
 
 		private $jsonSettingsFileName = 'php-transform.json';		// you can change it!
 
-		private $dirs = [
+		public $dirs = [
 			// source 				- to read files from (like index.html)
 			// target 				- to write files to (wp themes dir!)
 			// stubs 				- directory with stub files (template files)
@@ -41,7 +41,7 @@
 
 			$fName = $fDir . SEP . $item[$fileType];
 
-			if (DEB) echo "readSourceFile: " . $fName . ", type: " . $fileType . "\n";
+			d("readSourceFile: {$fName}, type: {$fileType}", 2);
 
 			$content = file_get_contents($fName);
 
@@ -54,7 +54,7 @@
 			$fName = (isset($item['contentToFileName']) ?  $item['contentToFileName'] : $item['fileName']);
 			$fNameFull = $this->getDir('target') . SEP . $pref . $fName;
 
-			if (DEB) echo "writeToFile: " . $fNameFull . ", " . strlen($content) . " bytes." . "\n";
+			d("writeToFile: {$fNameFull}, " . strlen($content) . " bytes.", 2);
 
 			$myfile = fopen($fNameFull, "w") or die("Unable to open file!");
 			fwrite($myfile, $content);
@@ -63,34 +63,54 @@
 			return true;
 		}
 
+		function setStatsTask($stats, $i, $task, $item, $processors) {
+
+			if (isset($item['fileName'])) {
+				
+				$f = $item['fileName'];
+
+			} else if (isset($item['folderName'])) {
+				
+				$f = $item['folderName'];
+
+			} else if (isset($item['contentFromFileName'])) {
+
+				$f = $item['contentFromFileName'];
+
+			}
+
+			$processors = array_column($processors, "name");
+
+			$stats->setValue($i, "task", $task);
+			$stats->setValue($i, "files", $f);
+			$stats->setValue($i, "processors", $processors);
+		}
 
 		function run($argv) {
 
 			//var_dump($argv);
 			$stats = new outputStats();
 
+
 			$this->setDir('source', $argv[1] . SEP);
 			$rulesJson = $this->getSettings();
 
-			$this->setDir('target', $rulesJson['targetDir']);
-			$this->setDir('stubs', $rulesJson['stubsDir']);
+			$this->dirs = array_merge($this->dirs, $rulesJson['dirs']);
 
 			echo "Running transform.php at " . date("h:i:sa") . " for " . count($rulesJson['tasks']) . " items!\n";
 
-			if (DEB == 3) {
-				echo "Passed rules:\n";
-				print_r($rulesJson);
-			}
+			d($rulesJson, 3);
 
 			$content = '';
 			$contentFromFileName = '';
 			$contentFromStub = '';
 
 			$stats->header = [
-				'task',
-				'time',
-				'files',
-				'processors'
+				'task' 			=> 25,
+				'time' 			=> 7,
+				'files' 		=> 25,
+				'processors' 	=> 25,
+				'stats'			=> 50
 			];
 			//'error'
 
@@ -99,11 +119,9 @@
 			foreach ($rulesJson['tasks'] as $task => $item) {
 
 				$processors = $item['processors'];
-				if (DEB) echo "i: " . $i . " (".$task.")" . "\n";
+				d("i: " . $i . " (".$task.")", 2);
 
-				$stats->setValue($i, "task", $task);
-				$stats->setValue($i, "files", (isset($item['fileName'])?$item['fileName']:$item['folderName']));
-				$stats->setValue($i, "processors", count($processors));
+				$this->setStatsTask($stats, $i, $task, $item, $processors);
 
 				$ii = 0;
 				foreach ($processors as $proc => $procItem) {
@@ -113,8 +131,7 @@
 
 					$content = call_user_func(array($clObj, 'perform'), array_merge($item, $procItem), $content, $this);
 					$writeToFile = call_user_func(array($clObj, 'getWriteToFile'));
-
-					$stats->setTs($i);
+					$curStats = call_user_func(array($clObj, 'getStats'));
 
 					//to call destruct method!
 					unset($clObj);
@@ -122,8 +139,13 @@
 					$ii++;
 				}
 
-				$this->writeToFile($item, $content);
-				$content = '';
+				$stats->setTs($i);
+				$stats->setValue($i, 'stats', json_encode($curStats, JSON_UNESCAPED_SLASHES));
+
+				if ($writeToFile) {
+					$this->writeToFile($item, $content);
+					$content = '';
+				}
 
 				/*
 				$condWriteToFile =	$writeToFile || ($i == count($rulesJson['actions'])-1);

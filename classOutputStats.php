@@ -10,8 +10,6 @@
 		private $t1 = 0;
 		private $t2 = 0;
 
-		private $rpad = 25;
-
 		public $header;
 
 		function __construct() {
@@ -24,33 +22,40 @@
 			//echo 'tEnd: ' . $this->tEnd;
 			//echo 'tStart: ' . $this->tStart;
 
-			for ($i=1; $i<=(count($this->header)*$this->rpad);$i++) {echo "-";}
+			for ($i=1; $i <= array_sum($this->header); $i++) {echo "-";}
 			echo "\n";
-			for ($i=0; $i<(count($this->header));$i++) {echo ucfirst(str_pad($this->header[$i], $this->rpad));}
+			foreach ($this->header as $j => $rpad) {echo ucfirst(str_pad($j, $rpad));}
 			echo "\n";
-			for ($i=1; $i<=(count($this->header)*$this->rpad);$i++) {echo "-";}
+			for ($i=1; $i <= array_sum($this->header); $i++) {echo "-";}
 			echo "\n";
 
 			// body output
 			for ($i=0; $i<(count($this->stats));$i++) {
-				for ($j=0; $j<(count($this->header));$j++) {
+				foreach ($this->header as $j => $rpad) {
 					
-					if (!isset($this->stats[$i][$this->header[$j]])) 
-						$this->stats[$i][$this->header[$j]] = '';
+					if (!isset($this->stats[$i][$j]))
+						$this->stats[$i][$j] = '';
 
-					echo str_pad($this->stats[$i][$this->header[$j]], $this->rpad);
+					$x = $this->stats[$i][$j];
+					$x = trim($x, '{}');
+
+					if (strlen($x) >= $rpad) {
+						$x = substr($x, 0, $rpad-5) . "...";
+					}
+
+					echo str_pad($x, $rpad);
 				}
 				echo "\n";
 			}
 			echo "\n";
 
-			for ($i=1; $i<=(count($this->header)*$this->rpad);$i++) {echo "-";}
+			for ($i=1; $i <= array_sum($this->header); $i++) {echo "-";}
 			echo "\n";
 			echo 'Total execution time: ' . number_format($this->tEnd - $this->tStart, 3) . "\n";
 		}
 
 		public function setValue($i, $k, $val) {
-
+			//d(gettype($val));
 			if (gettype($val) == 'array') {
 				$val = implode(', ', $val);
 			}

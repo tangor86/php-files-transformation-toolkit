@@ -1,7 +1,17 @@
 <?php
 
 	define("SEP", "\\");		// dir separator
-	define("DEB", 1); 			// 1 - basic, 2 - moderate, 3 - detailed
+	define("DEB", 0); 			// 1 - basic, 2 - moderate, 3 - detailed
+
+	function d($msg, $lvl = 1) {
+		if ($lvl <= DEB) {
+			if (gettype($msg) == "array") {
+				print_r($msg);
+			} else {
+				echo "{$msg}\n";
+			}
+		}
+	}
 
 	/*
 	function log_error( $num, $str, $file, $line, $context = null )

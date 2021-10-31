@@ -9,10 +9,11 @@
 		protected $contentFromFileName = '';	// from what file I take content
 		protected $contentToFileName = '';		// content will go to this file!
 		protected $contentFromStub = '';		// to this content I will insert content of contentFromFileName
+		protected $stats = [];
 
 	    function __construct($item, $isFirst, transformationOrchestrator $mainClass ) {
 
-	        if (DEB) print "Executing " . get_class($this) . "\n";
+	        d("Executing " . get_class($this));
 
 	        /*
 	        if (empty($content) && $action != 'HardCopyFileFromStubs') {
@@ -47,7 +48,7 @@
 	    }
 
 	    function __destruct() {
-			if (DEB) print "Destroying " . get_class($this) . "\n";
+			d("Destroying " . get_class($this));
 	    }
 
 	    function setContentFromFileName($content) {
@@ -66,6 +67,10 @@
 	    	return $this->writeToFile;
 	    }
 
+	    function getStats() {
+	    	return $this->stats;
+	    }
+
 	    function perform($item, $content, transformationOrchestrator $mainClass) {
 	    	//should be redefined at all childs!
 	    }
@@ -78,46 +83,26 @@
 
 		function perform($item, $content, transformationOrchestrator $mainClass) {
 
-			//since all files actions are done in orchestrator, this class is more like stub!
-			$this->writeToFile = true;
-
-			return $content;
-		}
-	}
-
-	//action: HardCopyFileFromStubs
-	//this class does brutal copying as OS does (doesn't open file)
-	class actionHardCopyFileFromStubs extends action {
-
-		function perform($item, $content, transformationOrchestrator $mainClass) {
-
-			if (gettype($item['fileName']) == 'array') {
-				foreach ($item['fileName'] as $fName) {
-					copy(
-						$mainClass->getDir('stubs') . $fName, 
-						$mainClass->getDir('target') . $fName
-					);
-				}
+			if (gettype($item['fileName']) == 'string') {
+				$arr = [$item['fileName']];
 			} else {
-				copy(
-					$mainClass->getDir('stubs') . $item['fileName'], 
-					$mainClass->getDir('target') . $item['fileName']
-				);
+				$arr = $item['fileName'];
 			}
-			
-			return $content;
-		}
-	}
 
-	//action: HardCopyFileFromSource
-	class actionHardCopyFileFromSource extends action {
+			$fromDir = isset($item['fromDir']) ? $item['fromDir'] : 'source';
+			$toDir = isset($item['toDir']) ? $item['toDir'] : 'target';
 
-		function perform($item, $content, transformationOrchestrator $mainClass) {
+			$c = 0;
+			foreach ($arr as $key => $fName) {
+				$r = copy(
+					$mainClass->getDir($fromDir) . $fName, 
+					$mainClass->getDir($toDir) . $fName
+				);
 
-			copy(
-				$mainClass->getDir('source') . $item['fileName'], 
-				$mainClass->getDir('target') . $item['fileName']
-			);
+				if ($r) $c++;
+			}
+
+			$this->stats['msg'] = "Copied {$c} / " . count($arr);
 
 			return $content;
 		}
@@ -138,7 +123,7 @@
 
 			foreach ($arr as $key => $folderName) {
 				$this->recurseCopy(
-					$mainClass->getDir($item['dirType']) . $folderName,
+					$mainClass->getDir($item['fromDir']) . $folderName,
 					$mainClass->getDir('target') . $folderName
 				);
 			}
@@ -187,8 +172,7 @@
 
 		        if (is_dir("$sourceDirectory/$file") === true) {
 		            $this->recurseCopy("$sourceDirectory/$file", "$destinationDirectory/$file");
-		        }
-		        else {
+		        } else {
 		            copy("$sourceDirectory/$file", "$destinationDirectory/$file");
 		        }
 		    }
@@ -209,6 +193,8 @@
 
 		function perform($item, $content, transformationOrchestrator $mainClass) {
 
+			$this->writeToFile = true;
+
 			// important!
 			$contentFromFileName = $this->contentFromFileName;
 			$contentFromStub = $this->contentFromStub;
@@ -218,17 +204,13 @@
 				$matches = [];
 				$curPattern = str_replace('header', $tag, $this->tplPattern);
 
-				if (DEB) {
-					echo "curPattern = " . $curPattern . "\n";
-				}
+				d("curPattern = {$curPattern}");
 
 				preg_match_all($curPattern, $contentFromFileName, $matches);
 
-				if (DEB) {
-					echo "contentFromFileName: " . strlen($contentFromFileName) . " bytes." . "\n";
-					echo "contentFromStub: " . strlen($contentFromStub) . " bytes." . "\n";
-					print_r($matches);
-				}
+				d("contentFromFileName: " . strlen($contentFromFileName) . " bytes.");
+				d("contentFromStub: " . strlen($contentFromStub) . " bytes.");
+				d($matches, 2);
 
 				$c = 0;
 
@@ -248,7 +230,9 @@
 					$contentFromStub = preg_replace($curPattern, $toInsert, $contentFromStub, 1, $c);
 				}
 
-				if (DEB) echo "Matches count = " . $c . "\n";
+				d("Matches count = {$c}");
+
+				$this->stats["{$tag}"] = (isset($matches[1][0]) ? 'y' : 'n') . "-" . $c;
 			}
 
 			return $contentFromStub;
