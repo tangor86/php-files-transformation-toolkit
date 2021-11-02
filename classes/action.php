@@ -182,7 +182,40 @@
 		}
 	}
 
+	//action: StrReplace (x times)
+	class actionStrReplace extends action {
 
+		//https://stackoverflow.com/questions/4703737/how-to-use-str-replace-to-remove-text-a-certain-number-of-times-only-in-php
+		function str_replace_occurrences($find, $replace, $string, $count = -1) {
+		    // current occrurence 
+		    $current = 0;
+		    // while any occurrence 
+		    while (($pos = strpos($string, $find)) != false) {
+		        // update length of str (size of string is changing)
+		        $len = strlen($find);
+		        // found next one 
+		        $current++;
+		        // check if we've reached our target 
+		        // -1 is used to replace all occurrence 
+		        if ($current <= $count || $count == -1) {
+		            // do replacement 
+		            $string = substr_replace($string, $replace, $pos, $len);
+		        } else {
+		            // we've reached our 
+		            break;
+		        }
+		    }
+		    return $string;
+		}
+
+		function perform($item, $content, transformationOrchestrator $mainClass) {
+
+			$c = isset($item["count"]) ? intval($item["count"]) : -1;
+			$content = $this->str_replace_occurrences($item["find"], $item["replace"], $content, $c); 
+
+			return $content;
+		}
+	}
 
 	class actionHTMLReplace extends action {
 
