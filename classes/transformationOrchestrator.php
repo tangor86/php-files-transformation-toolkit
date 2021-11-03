@@ -28,10 +28,10 @@
 		function readSourceFile($item, $fileType = 'fileName') {
 
 			switch ($fileType) {
-				case 'contentToFileName':
+				case 'targetFile':
 					$fDir = $this->getDir('target');
 					break;
-				case 'stubFileName':
+				case 'stubFile':
 					$fDir = $this->getDir('stubs');
 					break;
 				default:
@@ -48,13 +48,22 @@
 			return $content;
 		}
 
+		function getTargetFileName($item) {
+			if (isset($item['targetFile'])) {
+				return $item['targetFile'];
+			} else if (isset($item['fileName'])) {
+				return $item['fileName'];
+			} else {
+				return $item['stubFile'];
+			}
+		}
+
 		function writeToFile($item, $content) {
 
 			$pref = '';
-			$fName = (isset($item['contentToFileName']) ?  $item['contentToFileName'] : $item['fileName']);
-			$fNameFull = $this->getDir('target') . SEP . $pref . $fName;
+			$fNameFull = $this->getDir('target') . SEP . $pref . $this->getTargetFileName($item);
 
-			d("writeToFile: {$fNameFull}, " . strlen($content) . " bytes.", 2);
+			d("writeToFile: {$fNameFull}, " . strlen($content) . " bytes.", 1);
 
 			$myfile = fopen($fNameFull, "w") or die("Unable to open file!");
 			fwrite($myfile, $content);
@@ -73,9 +82,9 @@
 				
 				$f = $item['folderName'];
 
-			} else if (isset($item['contentFromFileName'])) {
+			} else if (isset($item['tplFile'])) {
 
-				$f = $item['contentFromFileName'];
+				$f = $item['tplFile'];
 
 			}
 
@@ -130,11 +139,11 @@
 
 					$procName = $procItem['name'];
 					$clName = "action{$procName}";
-					$clObj = new $clName($item, !$ii, $this);
+					$clObj = new $clName($item, !$ii, $content, $this);
 					
 					$stats->setValue($ii, 'processors', $procName);
 
-					$content = call_user_func(array($clObj, 'perform'), array_merge($item, $procItem), $content, $this);
+					$content = call_user_func(array($clObj, 'perform'), array_merge($item, $procItem), $this);
 					$writeToFile = call_user_func(array($clObj, 'getWriteToFile'));
 					$curStats = call_user_func(array($clObj, 'getStats'));
 
@@ -153,15 +162,6 @@
 					$this->writeToFile($item, $content);
 					$content = '';
 				}
-
-				/*
-				$condWriteToFile =	$writeToFile || ($i == count($rulesJson['actions'])-1);
-				if (DEB) echo "WriteToFile = " . ($condWriteToFile?'yes':'no') . "\n";
-				if ($writeToFile) {
-					$this->writeToFile($item, $content);
-					$content = '';
-				}
-				*/
 
 				$i++;
 

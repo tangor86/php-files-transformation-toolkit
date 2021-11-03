@@ -10,41 +10,32 @@
 		protected $contentToFileName = '';		// content will go to this file!
 		protected $contentFromStub = '';		// to this content I will insert content of contentFromFileName
 		protected $stats = [];
+		protected $content = '';
+		protected $tplContent = '';
 
-	    function __construct($item, $isFirst, transformationOrchestrator $mainClass ) {
+	    function __construct($item, $isFirst, $content, transformationOrchestrator $mainClass ) {
 
 	        d("Executing " . get_class($this));
 
-	        /*
-	        if (empty($content) && $action != 'HardCopyFileFromStubs') {
-				if (isset($item['fileName']))
-					$content = $this->readSourceFile($item);
-			}
-			*/
+	        if (empty($content)) {
+	        	/*
+				if (isset($item['tplFile'])) {
+					
+					//$this->setContentFromFileName($mainClass->readSourceFile($item, 'tplFile'));
+					$this->content = $mainClass->readSourceFile($item, 'tplFile');
 
-			/*
-			if (isset($item['contentFromFileName'])) {
-				call_user_func(
-					array($clObj, 'setContentFromFileName'),
-					$this->readSourceFile($item, 'contentFromFileName')
-				);
-        	}
+				}
 
-			if (isset($item['stubFileName'])) {
-				call_user_func(
-					array($clObj, 'setContentFromStub'), $contentFromStub,
-					$this->readSourceFile($item, 'stubFileName')
-				);
-        	}
-			*/
+				if (isset($item['stubFile'])) {
+					
+					//$this->setContentFromStub($mainClass->readSourceFile($item, 'stubFile'));
+					$this->content = $mainClass->readSourceFile($item, 'stubFile');
 
-			if (isset($item['contentFromFileName'])) {
-				$this->setContentFromFileName($mainClass->readSourceFile($item, 'contentFromFileName'));
-			}
-
-			if (isset($item['stubFileName'])) {
-				$this->setContentFromStub($mainClass->readSourceFile($item, 'stubFileName'));
-			}
+				}
+				*/
+	        } else {
+	        	$this->content = $content;
+	        }			
 	    }
 
 	    function __destruct() {
@@ -71,7 +62,7 @@
 	    	return $this->stats;
 	    }
 
-	    function perform($item, $content, transformationOrchestrator $mainClass) {
+	    function perform($item, transformationOrchestrator $mainClass) {
 	    	//should be redefined at all childs!
 	    }
 	}
@@ -81,7 +72,7 @@
 	//action: CopyFile
 	class actionCopyFile extends action {
 
-		function perform($item, $content, transformationOrchestrator $mainClass) {
+		function perform($item, transformationOrchestrator $mainClass) {
 
 			if (gettype($item['fileName']) == 'string') {
 				$arr = [$item['fileName']];
@@ -105,7 +96,7 @@
 
 			$this->stats['msg'] = "Copied {$c} / " . count($arr);
 
-			return $content;
+			return 'done';
 		}
 	}
 
@@ -114,7 +105,7 @@
 
 		//https://stackoverflow.com/questions/2050859/copy-entire-contents-of-a-directory-to-another-using-php/2050965
 
-		function perform($item, $content, transformationOrchestrator $mainClass) {
+		function perform($item, transformationOrchestrator $mainClass) {
 
 			if (gettype($item['folderName']) == 'string') {
 				$arr = [$item['folderName']];
@@ -129,7 +120,7 @@
 				);
 			}
 			
-			return $content;
+			return 'done';
 		}
 
 		function recurseCopy(
@@ -208,10 +199,17 @@
 		    return $string;
 		}
 
-		function perform($item, $content, transformationOrchestrator $mainClass) {
+		function perform($item, transformationOrchestrator $mainClass) {
 
+			$this->writeToFile = true;
+
+			$l1 = strlen($this->content);
 			$c = isset($item["count"]) ? intval($item["count"]) : -1;
-			$content = $this->str_replace_occurrences($item["find"], $item["replace"], $content, $c); 
+			$content = $this->str_replace_occurrences($item["find"], $item["replace"], $this->content, $c); 
+			$l2 = strlen($content);
+
+			$this->stats['len1'] = $l1; 
+			$this->stats['len2'] = $l2; 
 
 			return $content;
 		}
@@ -225,13 +223,13 @@
 		//https://regex101.com/r/HYQmbV/1
 		private $tplPattern = "/(?<=<!-- \[t:header\] -->\s)([\s\S]+?)(?=\s*<!-- \[\/t:header\] -->)/m";
 
-		function perform($item, $content, transformationOrchestrator $mainClass) {
+		function perform($item, transformationOrchestrator $mainClass) {
 
 			$this->writeToFile = true;
 
 			// important!
-			$contentFromFileName = $this->contentFromFileName;
-			$contentFromStub = !empty($content) ? $content : $this->contentFromStub;
+			$tplContent = $mainClass->readSourceFile($item, 'tplFile');
+			$stubFileContent = !empty($this->content) ? $this->content : $mainClass->readSourceFile($item, 'stubFile');
 
 			foreach ($item['tags'] as $tag) {
 
@@ -240,10 +238,10 @@
 
 				d("curPattern = {$curPattern}");
 
-				preg_match_all($curPattern, $contentFromFileName, $matches);
+				preg_match_all($curPattern, $tplContent, $matches);
 
-				d("contentFromFileName: " . strlen($contentFromFileName) . " bytes.");
-				d("contentFromStub: " . strlen($contentFromStub) . " bytes.");
+				d("tplContent: " . strlen($tplContent) . " bytes.");
+				d("stubFileContent: " . strlen($stubFileContent) . " bytes.");
 				d($matches, 2);
 
 				$c = 0;
@@ -261,7 +259,7 @@
 					}
 					// end of replacing new line character!
 
-					$contentFromStub = preg_replace($curPattern, $toInsert, $contentFromStub, 1, $c);
+					$stubFileContent = preg_replace($curPattern, $toInsert, $stubFileContent, 1, $c);
 				}
 
 				d("Matches count = {$c}");
@@ -269,7 +267,7 @@
 				$this->stats["{$tag}"] = (isset($matches[1][0]) ? 'y' : 'n') . "-" . $c;
 			}
 
-			return $contentFromStub;
+			return $stubFileContent;
 		}
 	}
 
