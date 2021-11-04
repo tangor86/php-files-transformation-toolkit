@@ -158,7 +158,8 @@
 
 				$i = $ii;
 
-				if ($writeToFile) {
+				//if ($writeToFile) {
+				if (isset($item["writeToFile"])) {
 					$this->writeToFile($item, $content);
 					$content = '';
 				}
