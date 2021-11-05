@@ -1,0 +1,80 @@
+{
+	"dirs": {
+		"target": "C:\\Users\\EUGENY\\vvv-local\\www\\wordpress-one\\public_html\\wp-content\\themes\\gogogo\\",
+		"source": "C:\\Users\\EUGENY\\vvv-local\\www\\sample-theme\\public_html\\",
+		"stubs": "C:\\Users\\EUGENY\\vvv-local\\www\\sample-theme\\public_html\\stubs\\"
+	},
+	"tasks": {
+		"CopyFolders": {
+			"folderName": [
+				"welcome",
+				"template-parts",
+				"inc"
+			],
+			"processors": [{"name": "CopyFolder", "fromDir": "stubs"}]
+		},
+		"CopyFile_source": {
+			"fileName": "style.css",
+			"processors": [{"name": "CopyFile", "fromDir": "source"}]
+		},
+		"CopyFile_stubs": {
+			"fileName": [
+				"screenshot.png",
+				"sidebar.php",
+				"functions.php"
+			],
+			"processors": [{"name": "CopyFile", "fromDir": "stubs"}]
+		},
+		"HTMLReplace_header": {
+			"writeToFile": true,
+			"tplFile": "index.html",
+			"stubFile": "header.php",
+			"processors": [
+				{
+					"name": "HTMLReplace", 
+					"tags": [
+						"svg", "css"
+					]
+				},
+				{
+					"name": "HTMLReplace", 
+					"tags": [
+						"header"
+					]
+				},
+				{
+					"name": "StrReplace",
+					"find": "<link rel=\"stylesheet\" href=\"./style.css\">",
+					"replace": "<link rel=\"stylesheet\" href=\"<?php echo get_stylesheet_uri(); ?>\">"
+				}
+			]
+		},
+		"HTMLReplace_footer": {
+			"writeToFile": true,
+			"tplFile": "index.html",
+			"stubFile": "footer.php",
+			"processors": [
+				{
+					"name": "HTMLReplace",
+					"tags": [
+						"js",
+						"footer"
+					]
+				}
+			]
+		},
+		"HTMLReplace_index": {
+			"writeToFile": true,
+			"tplFile": "index.html",
+			"stubFile": "index.php",
+			"processors": [
+				{
+					"name": "HTMLReplace",
+					"tags": [
+						"sidebar"
+					]
+				}
+			]
+		}
+	}
+}

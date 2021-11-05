@@ -3,8 +3,6 @@
 	//Main class
 	class transformationOrchestrator {
 
-		private $jsonSettingsFileName = 'php-transform.json';		// you can change it!
-
 		public $dirs = [
 			// source 				- to read files from (like index.html)
 			// target 				- to write files to (wp themes dir!)
@@ -19,8 +17,8 @@
 			$this->dirs[$dirType] = $val;
 		}
 
-		function getSettings() {
-			$content = file_get_contents($this->getDir('source') . $this->jsonSettingsFileName);
+		function getSettings($currentDir, $jsonSettingsFileName) {
+			$content = file_get_contents($currentDir . SEP . "transformations" . SEP . $jsonSettingsFileName);
 			$rulesJson = json_decode($content, true);
 			return $rulesJson;
 		}
@@ -95,16 +93,13 @@
 			$stats->setValue($i, "processors", $processors);
 		}
 
-		function run($argv) {
+		function run($argv, $currentDir) {
 
 			//var_dump($argv);
 			$stats = new outputStats();
 
-
-			$this->setDir('source', $argv[1] . SEP);
-			$rulesJson = $this->getSettings();
-
-			$this->dirs = array_merge($this->dirs, $rulesJson['dirs']);
+			$rulesJson = $this->getSettings($currentDir, $argv[1]);
+			$this->dirs = $rulesJson['dirs'];
 
 			echo "Running transform.php at " . date("h:i:sa") . " for " . count($rulesJson['tasks']) . " items!\n";
 
