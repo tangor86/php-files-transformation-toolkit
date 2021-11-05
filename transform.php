@@ -32,11 +32,8 @@
 	
 	require_once(CLASS_DIR . SEP . 'action.php');
 
-	//echo "my env: " . getenv('t_engine');
-	//echo "!!!!!!!!";
-
 	//init
-	//Example: "php C:\Users\EUGENY\vvv-local\www\php-files-transformation-toolkit\transform.php c:\Users\EUGENY\vvv-local\www\sample-theme\public_html"
+	//Example: "php C:\Users\EUGENY\vvv-local\www\php-files-transformation-toolkit\transform.php wptheme-gogogo.json"
 	$mainClass = new transformationOrchestrator();
 	$mainClass->run($argv, dirname(__FILE__));
 

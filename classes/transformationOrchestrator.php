@@ -96,6 +96,7 @@
 		function run($argv, $currentDir) {
 
 			//var_dump($argv);
+			//echo "my env: " . getenv('t_engine');
 			$stats = new outputStats();
 
 			$rulesJson = $this->getSettings($currentDir, $argv[1]);
