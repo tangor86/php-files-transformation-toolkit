@@ -223,6 +223,9 @@
 		//https://regex101.com/r/HYQmbV/1
 		private $tplPattern = "/(?<=<!-- \[t:header\] -->\s)([\s\S]+?)(?=\s*<!-- \[\/t:header\] -->)/m";
 
+		//https://regex101.com/r/Mt0KUi/1
+		private $tplCond	= "/(<!-- \[t:cond\]\s)([\s\S]+)(-->\s)([\s\S]+)(\<!--\[\/t:cond\]-->)/m";
+
 		function perform($item, transformationOrchestrator $mainClass) {
 
 			$this->writeToFile = true;
@@ -230,6 +233,9 @@
 			// important!
 			$tplContent = $mainClass->readSourceFile($item, 'tplFile');
 			$stubFileContent = !empty($this->content) ? $this->content : $mainClass->readSourceFile($item, 'stubFile');
+
+			// replacing conditional tags first!
+			$tplContent = preg_replace($this->tplCond, "$2", $tplContent);
 
 			foreach ($item['tags'] as $tag) {
 

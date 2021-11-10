@@ -25,7 +25,7 @@
 			],
 			"processors": [{"name": "CopyFile", "fromDir": "stubs"}]
 		},
-		"HTMLReplace_header": {
+		"Header": {
 			"writeToFile": true,
 			"tplFile": "index.html",
 			"stubFile": "header.php",
@@ -46,6 +46,11 @@
 					"name": "StrReplace",
 					"find": "<link rel=\"stylesheet\" href=\"./style.css\">",
 					"replace": "<link rel=\"stylesheet\" href=\"<?php echo get_stylesheet_uri(); ?>\">"
+				},
+				{
+					"name": "StrReplace",
+					"find": "{{ Site name }}",
+					"replace": "<?php bloginfo( 'name' ); ?>"
 				}
 			]
 		},
