@@ -14,7 +14,10 @@
 			"processors": [{"name": "CopyFolder", "fromDir": "stubs"}]
 		},
 		"CopyFile_source": {
-			"fileName": "style.css",
+			"fileName": [
+				"style.css",
+				"quotes.json"
+			],
 			"processors": [{"name": "CopyFile", "fromDir": "source"}]
 		},
 		"CopyFile_stubs": {
